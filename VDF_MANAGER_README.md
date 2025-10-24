@@ -52,8 +52,16 @@ python scripts/vdf_config_manager.py extract
 # Extract ALL games to JSON (recommended)
 python scripts/vdf_config_manager.py extract-all
 
-# Extract all games including system apps (Proton, Steam Runtime, etc.)
-python scripts/vdf_config_manager.py extract-all --include-system
+# Extract with different modes
+python scripts/vdf_config_manager.py extract-all --mode=sparse      # Only existing fields (default)
+python scripts/vdf_config_manager.py extract-all --mode=standard   # All fields with defaults
+
+# Extract with additional options
+python scripts/vdf_config_manager.py extract-all --include-system    # Include system apps
+python scripts/vdf_config_manager.py extract-all --include-managed   # Include Steam-managed fields
+
+# Combined options
+python scripts/vdf_config_manager.py extract-all --mode=sparse --include-managed
 
 # Refresh app name cache
 python scripts/vdf_config_manager.py refresh-cache
@@ -91,6 +99,66 @@ python scripts/vdf_config_manager.py restore --backup-path data/backups/localcon
 5. **Start Steam:**
    Launch Steam to see your changes take effect.
 
+## Dual-Mode Extraction System
+
+The tool supports two extraction modes to handle Steam's sparse storage model:
+
+### Sparse Mode (Default)
+- **Purpose**: Accurate representation of actual data
+- **Behavior**: Only includes fields that exist in localconfig.vdf
+- **Use Case**: Data analysis, understanding actual Steam configuration
+- **Output**: Variable fields per game (2-8 fields typically)
+
+### Standard Mode
+- **Purpose**: Frontend-friendly consistent schema
+- **Behavior**: All games have same fields with defaults for missing values
+- **Use Case**: UI forms, consistent data processing
+- **Output**: All games have same fields (9 fields typically)
+
+### Mode Comparison
+
+**Sparse Mode Example:**
+```json
+{
+  "7": {
+    "appid": "7",
+    "AppName": "App 7"
+  },
+  "3241660": {
+    "appid": "3241660",
+    "AppName": "R.E.P.O.",
+    "LastPlayed": "1761018554",
+    "Playtime": "9520",
+    "LaunchOptions": "%command% --doorstop...",
+    "ResolutionOverride": "1920x1080"
+  }
+}
+```
+
+**Standard Mode Example:**
+```json
+{
+  "7": {
+    "appid": "7",
+    "AppName": "App 7",
+    "LaunchOptions": "",
+    "Playtime": "",
+    "LastPlayed": "",
+    "ResolutionOverride": "",
+    "ResolutionOverrideInternalDisplay": ""
+  },
+  "3241660": {
+    "appid": "3241660",
+    "AppName": "R.E.P.O.",
+    "LaunchOptions": "%command% --doorstop...",
+    "Playtime": "9520",
+    "LastPlayed": "1761018554",
+    "ResolutionOverride": "1920x1080",
+    "ResolutionOverrideInternalDisplay": "0"
+  }
+}
+```
+
 ## Dynamic Game Name Resolution
 
 The tool uses a sophisticated multi-fallback system to resolve app IDs to human-readable game names:
@@ -127,6 +195,38 @@ The tool uses a sophisticated multi-fallback system to resolve app IDs to human-
 - Improves performance on subsequent runs
 - Automatically refreshed when new games are discovered
 - Use `refresh-cache` command to force refresh
+
+## Field Categories and Safety
+
+### Essential Fields (Always Safe to Modify)
+- `LaunchOptions` - Command-line parameters
+- `ResolutionOverride` - Custom resolution settings
+- `ResolutionOverrideInternalDisplay` - Internal display settings
+- `Playtime2wks` - Recent play time tracking
+- `PlaytimeDisconnected` - Offline play time
+
+### Steam-Managed Fields (Preserve, Don't Modify)
+- `cloud` - Cloud sync state (nested object)
+- `autocloud` - Auto-cloud settings (nested object)
+- `BadgeData` - Achievement/badge data
+- `{APPID}_eula_{N}` - EULA acceptance tracking
+
+### Tool-Added Fields (Read-Only)
+- `appid` - Steam app ID (added by tool)
+- `AppName` - Game name (resolved by tool)
+
+### Write Operation Safety
+
+The tool implements several safety measures when writing back to localconfig.vdf:
+
+1. **Field Validation**: Only safe user fields are modified
+2. **Steam-Managed Protection**: Managed fields are skipped with warnings
+3. **EULA Protection**: EULA fields are skipped for safety
+4. **Field Deletion Support**: 
+   - `null` values → delete field from VDF
+   - Empty strings `""` → remove field if exists
+5. **Backup Creation**: Automatic backup before any write operation
+6. **Steam Process Check**: Prevents writes while Steam is running
 
 ## JSON Format
 
