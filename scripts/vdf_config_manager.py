@@ -254,12 +254,14 @@ class VDFConfigManager:
             except Exception as e2:
                 raise Exception(f"Both text and binary parsing failed: {e2}")
     
-    def extract_all_games(self, include_system_apps: bool = False) -> Dict[str, Any]:
+    def extract_all_games(self, include_system_apps: bool = False, mode: str = "sparse", include_managed: bool = False) -> Dict[str, Any]:
         """
         Extract all game configurations from localconfig.vdf.
         
         Args:
             include_system_apps: Whether to include system apps (Proton, Steam Runtime, etc.)
+            mode: Extraction mode - "sparse" (only existing fields) or "standard" (all fields)
+            include_managed: Whether to include Steam-managed fields (cloud, autocloud, BadgeData)
             
         Returns:
             Dictionary containing all game data with essential fields
@@ -272,8 +274,15 @@ class VDFConfigManager:
         all_games = {}
         
         print(f"Found {len(apps_section)} apps in localconfig.vdf")
+        print(f"Extraction mode: {mode} (managed fields: {'included' if include_managed else 'excluded'})")
         
-        # Process all apps, not just those with LaunchOptions
+        # Define field categories
+        essential_fields = {"LastPlayed", "Playtime", "LaunchOptions"}
+        optional_user_fields = {"ResolutionOverride", "ResolutionOverrideInternalDisplay", "Playtime2wks", "PlaytimeDisconnected"}
+        managed_fields = {"cloud", "autocloud", "BadgeData"}
+        eula_fields = set()  # Will be populated dynamically
+        
+        # Process all apps
         for app_id, app_data in apps_section.items():
             if not isinstance(app_data, dict):
                 continue
@@ -285,16 +294,47 @@ class VDFConfigManager:
             if not include_system_apps and self.name_resolver.is_system_app(app_id, app_name):
                 continue
             
-            # Extract essential fields
+            # Start with essential fields that are always added by the tool
             game_data = {
                 "appid": app_id,
                 "AppName": app_name,
-                "LaunchOptions": app_data.get("LaunchOptions", ""),
-                "Playtime": app_data.get("Playtime", "0"),
-                "LastPlayed": app_data.get("LastPlayed", "0"),
-                "ResolutionOverride": app_data.get("ResolutionOverride", ""),
-                "ResolutionOverrideInternalDisplay": app_data.get("ResolutionOverrideInternalDisplay", "0"),
             }
+            
+            # Extract fields based on mode
+            if mode == "sparse":
+                # Sparse mode: only include fields that actually exist
+                for field_name, field_value in app_data.items():
+                    # Skip EULA fields unless include_managed is True
+                    if field_name.endswith("_eula_0") or field_name.endswith("_eula_1"):
+                        if include_managed:
+                            game_data[field_name] = field_value
+                        continue
+                    
+                    # Skip managed fields unless include_managed is True
+                    if field_name in managed_fields:
+                        if include_managed:
+                            game_data[field_name] = field_value
+                        continue
+                    
+                    # Include all other fields (essential + optional user fields)
+                    game_data[field_name] = field_value
+                    
+            else:  # standard mode
+                # Standard mode: include all fields with defaults for missing ones
+                for field in essential_fields | optional_user_fields:
+                    game_data[field] = app_data.get(field, "")
+                
+                # Add managed fields if requested
+                if include_managed:
+                    for field in managed_fields:
+                        if field in app_data:
+                            game_data[field] = app_data[field]
+                
+                # Add EULA fields if requested
+                if include_managed:
+                    for field_name, field_value in app_data.items():
+                        if field_name.endswith("_eula_0") or field_name.endswith("_eula_1"):
+                            game_data[field_name] = field_value
             
             # Try to get additional info from shortcuts.vdf for non-Steam games
             if app_data.get("LaunchOptions"):
@@ -308,13 +348,16 @@ class VDFConfigManager:
                         for shortcut_id, shortcut_info in shortcuts_data.get("shortcuts", {}).items():
                             if (shortcut_info.get("LaunchOptions", "").replace("%command% ", "") == 
                                 app_data.get("LaunchOptions", "").replace("%command% ", "")):
-                                game_data.update({
-                                    "Exe": shortcut_info.get("Exe", ""),
-                                    "StartDir": shortcut_info.get("StartDir", ""),
-                                    "IsHidden": shortcut_info.get("IsHidden", 0),
-                                    "AllowDesktopConfig": shortcut_info.get("AllowDesktopConfig", 1),
-                                    "AllowOverlay": shortcut_info.get("AllowOverlay", 1),
-                                })
+                                # Add shortcut fields based on mode
+                                shortcut_fields = ["Exe", "StartDir", "IsHidden", "AllowDesktopConfig", "AllowOverlay"]
+                                for field in shortcut_fields:
+                                    if mode == "sparse":
+                                        # Only add if it exists and has a value
+                                        if field in shortcut_info and shortcut_info[field]:
+                                            game_data[field] = shortcut_info[field]
+                                    else:
+                                        # Standard mode: add with default
+                                        game_data[field] = shortcut_info.get(field, "" if field in ["Exe", "StartDir"] else 0)
                                 break
                     except Exception as e:
                         print(f"Warning: Could not read shortcuts.vdf: {e}")
@@ -335,7 +378,7 @@ class VDFConfigManager:
             Dictionary containing shortcut data with essential fields only
         """
         # Use the new method but filter to only games with launch options
-        all_games = self.extract_all_games(include_system_apps=False)
+        all_games = self.extract_all_games(include_system_apps=False, mode="standard")
         shortcuts = {}
         
         for app_id, game_data in all_games.items():
@@ -381,16 +424,57 @@ class VDFConfigManager:
             # Navigate to the apps section
             apps_section = data["UserLocalConfigStore"]["Software"]["Valve"]["Steam"]["apps"]
             
+            # Define field categories for validation
+            safe_user_fields = {
+                "LaunchOptions", "ResolutionOverride", "ResolutionOverrideInternalDisplay",
+                "Playtime2wks", "PlaytimeDisconnected"
+            }
+            managed_fields = {"cloud", "autocloud", "BadgeData"}
+            dangerous_fields = set()  # EULA fields and others
+            
             # Update each shortcut
             for app_id, shortcut_data in shortcuts.items():
-                if app_id in apps_section:
-                    # Update only the fields we care about
-                    if "LaunchOptions" in shortcut_data:
-                        apps_section[app_id]["LaunchOptions"] = shortcut_data["LaunchOptions"]
-                    if "ResolutionOverride" in shortcut_data:
-                        apps_section[app_id]["ResolutionOverride"] = shortcut_data["ResolutionOverride"]
-                else:
+                if app_id not in apps_section:
                     print(f"Warning: App ID {app_id} not found in localconfig.vdf")
+                    continue
+                
+                # Validate and update fields
+                for field_name, field_value in shortcut_data.items():
+                    # Skip tool-added fields
+                    if field_name in {"appid", "AppName"}:
+                        continue
+                    
+                    # Check for dangerous fields
+                    if field_name.endswith("_eula_0") or field_name.endswith("_eula_1"):
+                        print(f"Warning: EULA field {field_name} detected - skipping for safety")
+                        continue
+                    
+                    # Check for managed fields
+                    if field_name in managed_fields:
+                        print(f"Warning: Steam-managed field {field_name} detected - skipping for safety")
+                        continue
+                    
+                    # Handle field deletion (null values)
+                    if field_value is None:
+                        if field_name in apps_section[app_id]:
+                            del apps_section[app_id][field_name]
+                            print(f"Deleted field {field_name} from app {app_id}")
+                        continue
+                    
+                    # Handle empty strings (don't write, delete if exists)
+                    if field_value == "":
+                        if field_name in apps_section[app_id]:
+                            del apps_section[app_id][field_name]
+                            print(f"Removed empty field {field_name} from app {app_id}")
+                        continue
+                    
+                    # Update field value
+                    if field_name in safe_user_fields:
+                        apps_section[app_id][field_name] = field_value
+                        print(f"Updated {field_name} for app {app_id}")
+                    else:
+                        print(f"Warning: Unknown field {field_name} - updating anyway")
+                        apps_section[app_id][field_name] = field_value
             
             # Write back to file
             with open(self.localconfig_path, 'w', encoding='utf-8') as f:
@@ -428,6 +512,10 @@ def main():
                        help="Path to backup file (for restore command)")
     parser.add_argument("--include-system", action="store_true",
                        help="Include system apps (Proton, Steam Runtime) in extraction")
+    parser.add_argument("--mode", choices=["sparse", "standard"], default="sparse",
+                       help="Extraction mode: sparse (only existing fields) or standard (all fields)")
+    parser.add_argument("--include-managed", action="store_true",
+                       help="Include Steam-managed fields (cloud, autocloud, BadgeData, EULA)")
     
     args = parser.parse_args()
     
@@ -442,7 +530,11 @@ def main():
             
         elif args.command == "extract-all":
             print("Extracting all games from localconfig.vdf...")
-            all_games = manager.extract_all_games(include_system_apps=args.include_system)
+            all_games = manager.extract_all_games(
+                include_system_apps=args.include_system,
+                mode=args.mode,
+                include_managed=args.include_managed
+            )
             manager.save_shortcuts_json(all_games)
             print(f"Found {len(all_games)} games total")
             
