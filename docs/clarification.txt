@@ -1,0 +1,41 @@
+In the findings, it looks like it is said that Shortcuts.vdf is seen as a legacy file, but it's really just a holding place for non-steam games. 
+
+Also, I think the localconfig vdf file might be plain text (seems to open easily in an editor with no weird characters)
+
+Here also are the results from a conversation with Gemini:
+
+
+Me: "Is there a chance that steam recently made a change as to how these local options are handled? I notice that my own "shortcurs.vdf" in the config folder is outdated, and the localconfig.vdf is what is actually storing the current data."
+
+Gemini: "That is a very sharp observation, and you are absolutely correct.
+
+Your analysis is spot on. Steam has indeed changed how it handles this data, moving away from a single file for everything and toward a "separation of concerns."
+
+Here is the breakdown of what's happening, which explains exactly what you're seeing:
+
+shortcuts.vdf (The "Roster"): This file is now only used to store the core definition of a non-Steam game (e.g., AppName, Exe path, StartDir). It's a binary file and is only written to when you add or remove a non-Steam game. This is why it appears "outdated"—if you haven't added a new non-Steam game in a while, its "Last Modified" date will be old, even if you've been changing its settings every day.
+
+localconfig.vdf (The "Metadata File"): This is the file you've correctly identified as being "current." This file stores all the other settings that you apply to games in your library (both Steam and non-Steam). This includes:
+
+Collections: Which collections a game belongs to (what used to be "categories").
+
+Compatibility: The specific Proton version you've forced a game to use.
+
+Customization: The custom artwork (grid, hero, logo) you've set.
+
+Hidden Status: Whether a game is marked as "Hidden."
+
+Client Settings: A huge range of other client and UI settings.
+
+Why You Are Seeing This
+What you're observing is the exact workflow:
+
+Steam boots and reads shortcuts.vdf to get the list of non-Steam games to load into the library.
+
+Then, Steam reads localconfig.vdf to get all the properties for those games (and all your Steam games) and applies them to the UI.
+
+When you go to the "Customization" or "Compatibility" tab and make a change, Steam writes only to localconfig.vdf.
+
+So, you are right. shortcuts.vdf is the "what" and localconfig.vdf is the "how." This means for any systematic editing of those UI properties you mentioned, localconfig.vdf is the file you need to be targeting.
+
+One warning: localconfig.vdf is a plain text VDF, but it's notoriously complex and fragile. As one search result noted, it can get bloated, and manually editing it can be risky. If you corrupt it, Steam will likely reset all your client settings and collections. Always make a backup before editing it."

@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Steam Data (sensitive user data)
+data/backups/
+data/shortcuts_config.json
+data/all_games_config.json
+data/app_name_cache.json
+data/shortcuts_test_output.json
+data/test_shortcuts.json
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# User-specific Steam paths (don't track actual user data)
+steam_user_data/
+userdata/
