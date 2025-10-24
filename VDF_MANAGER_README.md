@@ -99,6 +99,381 @@ python scripts/vdf_config_manager.py restore --backup-path data/backups/localcon
 5. **Start Steam:**
    Launch Steam to see your changes take effect.
 
+## Updating Game Configurations
+
+### Complete Update Workflow
+
+The update process allows you to modify game settings by editing the JSON file and applying changes back to Steam's configuration.
+
+**Step-by-Step Process:**
+
+1. **Extract Current Configuration**
+   ```bash
+   python scripts/vdf_config_manager.py extract-all --mode=sparse
+   ```
+
+2. **Edit JSON File**
+   - Open `data/all_games_config.json`
+   - Modify the fields you want to change
+   - Save the file
+
+3. **Validate Changes**
+   - Review your modifications carefully
+   - Ensure JSON syntax is valid
+   - Check that you're only modifying safe fields
+
+4. **Close Steam Completely**
+   - Exit Steam application
+   - Verify no Steam processes are running
+   - The tool will check this automatically
+
+5. **Run Update Command**
+   ```bash
+   python scripts/vdf_config_manager.py update
+   ```
+
+6. **Verify Backup**
+   - Check that backup was created in `data/backups/`
+   - Note the backup filename for potential rollback
+
+7. **Start Steam and Test**
+   - Launch Steam
+   - Verify your changes are applied
+   - Test the modified games
+
+### JSON Editing Guide
+
+**Field Modification Syntax:**
+
+- **Modify existing field**: Change the value in the JSON
+- **Add new field**: Include the field in the JSON with your desired value
+- **Delete field**: Set the field to `null` or `""` (empty string)
+- **Preserve field**: Don't include the field in the JSON (will remain unchanged)
+
+**Practical Examples:**
+
+**Example 1: Update Launch Options**
+```json
+{
+  "3241660": {
+    "appid": "3241660",
+    "AppName": "R.E.P.O.",
+    "LaunchOptions": "%command% --new-profile \"Friends2\""
+  }
+}
+```
+
+**Example 2: Change Resolution**
+```json
+{
+  "1245620": {
+    "appid": "1245620",
+    "AppName": "ELDEN RING",
+    "ResolutionOverride": "2560x1440"
+  }
+}
+```
+
+**Example 3: Remove Launch Options**
+```json
+{
+  "3241660": {
+    "appid": "3241660",
+    "AppName": "R.E.P.O.",
+    "LaunchOptions": ""
+  }
+}
+```
+
+**Example 4: Bulk Update Multiple Games**
+```json
+{
+  "3241660": {
+    "appid": "3241660",
+    "AppName": "R.E.P.O.",
+    "ResolutionOverride": "1920x1080"
+  },
+  "1245620": {
+    "appid": "1245620",
+    "AppName": "ELDEN RING",
+    "ResolutionOverride": "2560x1440"
+  }
+}
+```
+
+**Example 5: Remove All Launch Options**
+```json
+{
+  "3241660": {
+    "appid": "3241660",
+    "AppName": "R.E.P.O.",
+    "LaunchOptions": null
+  }
+}
+```
+
+**Example 6: Set Native Resolution**
+```json
+{
+  "1245620": {
+    "appid": "1245620",
+    "AppName": "ELDEN RING",
+    "ResolutionOverride": "Native"
+  }
+}
+```
+
+### Real-World Usage Scenarios
+
+**Scenario 1: Modding a Game**
+```bash
+# 1. Extract current config
+python scripts/vdf_config_manager.py extract-all --mode=sparse
+
+# 2. Edit data/all_games_config.json to add mod launcher
+{
+  "3241660": {
+    "appid": "3241660",
+    "AppName": "R.E.P.O.",
+    "LaunchOptions": "%command% --doorstop-enable true --doorstop-target \"/home/deck/Mods/BepInEx/core/BepInEx.dll\""
+  }
+}
+
+# 3. Close Steam and update
+python scripts/vdf_config_manager.py update
+```
+
+**Scenario 2: Performance Optimization**
+```bash
+# 1. Extract all games
+python scripts/vdf_config_manager.py extract-all --mode=standard
+
+# 2. Set consistent resolution for multiple games
+{
+  "1245620": {"appid": "1245620", "AppName": "ELDEN RING", "ResolutionOverride": "1920x1080"},
+  "1174180": {"appid": "1174180", "AppName": "Red Dead Redemption 2", "ResolutionOverride": "1920x1080"},
+  "271590": {"appid": "271590", "AppName": "Grand Theft Auto V", "ResolutionOverride": "1920x1080"}
+}
+
+# 3. Apply changes
+python scripts/vdf_config_manager.py update
+```
+
+**Scenario 3: Clean Up Old Settings**
+```bash
+# 1. Extract current config
+python scripts/vdf_config_manager.py extract-all --mode=sparse
+
+# 2. Remove launch options from games that no longer need them
+{
+  "3241660": {
+    "appid": "3241660",
+    "AppName": "R.E.P.O.",
+    "LaunchOptions": ""  # This will delete the field
+  }
+}
+
+# 3. Apply cleanup
+python scripts/vdf_config_manager.py update
+```
+
+### Update Command Details
+
+**Command Syntax:**
+```bash
+python scripts/vdf_config_manager.py update [--user-id USER_ID]
+```
+
+**What the Update Command Does:**
+
+1. **Reads Configuration**: Loads `data/all_games_config.json`
+2. **Creates Backup**: Automatically backs up `localconfig.vdf` with timestamp
+3. **Validates Changes**: Checks for safe fields and warns about dangerous ones
+4. **Applies Modifications**: Updates `localconfig.vdf` with your changes
+5. **Shows Detailed Log**: Displays exactly what was changed
+
+**Example Output:**
+```
+Updating localconfig.vdf with JSON data...
+Backup created: data/backups/localconfig_backup_20251023_143022.vdf
+Updated LaunchOptions for app 3241660
+Updated ResolutionOverride for app 1245620
+Removed empty field PlaytimeDisconnected from app 7
+Successfully updated localconfig.vdf
+Backup available at: data/backups/localconfig_backup_20251023_143022.vdf
+```
+
+### Field Reference
+
+**LaunchOptions**
+- **Purpose**: Command-line parameters passed to the game
+- **Format**: String with parameters
+- **Examples**: 
+  - `"%command% --fullscreen --width 1920"`
+  - `"%command% --doorstop-enable true --doorstop-target \"/path/to/mod.dll\""`
+- **Notes**: Always start with `%command%` for non-Steam games
+
+**ResolutionOverride**
+- **Purpose**: Force a specific resolution for the game
+- **Format**: "WIDTHxHEIGHT" or "Native"
+- **Examples**: 
+  - `"1920x1080"`
+  - `"2560x1440"`
+  - `"Native"`
+- **Notes**: Use "Native" to let the game choose its own resolution
+
+**ResolutionOverrideInternalDisplay**
+- **Purpose**: Internal display override setting
+- **Format**: "0" (disabled) or "1" (enabled)
+- **Common Value**: Usually "0"
+- **Notes**: Rarely needs to be changed
+
+**PlaytimeDisconnected**
+- **Purpose**: Track playtime while disconnected from Steam
+- **Format**: Number (minutes)
+- **Notes**: Usually managed by Steam automatically
+
+### Safety Guidelines
+
+**Before Running Update:**
+
+1. ✓ **Close Steam Completely**
+   - Exit the Steam application
+   - Check that no Steam processes are running
+   - The tool will prevent updates if Steam is running
+
+2. ✓ **Review JSON Changes Carefully**
+   - Double-check the app IDs you're modifying
+   - Verify the field values are correct
+   - Ensure JSON syntax is valid
+
+3. ✓ **Verify Backup Directory**
+   - Check that `data/backups/` directory exists
+   - The tool creates automatic backups, but verify the location
+
+4. ✓ **Only Modify Safe User Fields**
+   - Stick to: LaunchOptions, ResolutionOverride, ResolutionOverrideInternalDisplay
+   - Avoid: cloud, autocloud, BadgeData, EULA fields
+
+5. ✓ **Don't Edit Steam-Managed Fields**
+   - These are automatically skipped with warnings
+   - Modifying them could cause Steam issues
+
+**What Gets Updated:**
+
+- ✓ **LaunchOptions** - Safe to modify
+- ✓ **ResolutionOverride** - Safe to modify  
+- ✓ **ResolutionOverrideInternalDisplay** - Safe to modify
+- ✓ **PlaytimeDisconnected** - Safe to modify
+- ✗ **cloud, autocloud, BadgeData** - Skipped for safety
+- ✗ **EULA fields** - Skipped for safety
+- ✗ **appid, AppName** - Tool-managed, skipped
+
+### Troubleshooting
+
+**Common Issues and Solutions:**
+
+**"Steam is currently running" Error**
+- **Problem**: Steam is still running
+- **Solution**: Close Steam completely and try again
+- **Check**: Run `pgrep -f steam` to verify no processes
+
+**"App ID not found" Warning**
+- **Problem**: The app ID in JSON doesn't exist in localconfig.vdf
+- **Solution**: Check the app ID is correct, or the game was uninstalled
+- **Check**: Verify with `extract-all` command
+
+**"Field skipped for safety" Warning**
+- **Problem**: You tried to modify a Steam-managed field
+- **Solution**: Remove the field from JSON or use `--include-managed` flag
+- **Note**: This is normal behavior for cloud, autocloud, BadgeData fields
+
+**JSON Parse Errors**
+- **Problem**: Invalid JSON syntax in the file
+- **Solution**: Validate JSON syntax using an online validator
+- **Check**: Look for missing commas, quotes, or brackets
+
+**"Backup creation failed" Error**
+- **Problem**: Cannot create backup file
+- **Solution**: Check write permissions in `data/backups/` directory
+- **Check**: Ensure directory exists and is writable
+
+**Changes Not Applied**
+- **Problem**: Updates didn't take effect in Steam
+- **Solution**: Restart Steam completely, verify backup was created
+- **Check**: Use backup to restore if needed
+
+**Field Deletion Not Working**
+- **Problem**: Empty string `""` not removing field
+- **Solution**: Use `null` instead of `""` for explicit deletion
+- **Note**: Empty strings remove fields, `null` explicitly deletes them
+
+### Logic Review and Important Notes
+
+**Field Deletion Behavior:**
+The tool handles field deletion in two ways:
+- **`null` values**: Explicitly delete the field from localconfig.vdf
+- **Empty strings `""`**: Also delete the field (same as null)
+- **Missing fields**: Preserve existing values (don't modify)
+
+**Sparse vs Standard Mode Compatibility:**
+- **Sparse mode**: Only includes fields that exist in localconfig.vdf
+- **Standard mode**: Includes all fields with defaults for missing ones
+- **Update behavior**: Only modifies fields present in JSON, regardless of extraction mode
+- **Missing fields**: Always preserved during updates
+
+**Tool-Added Fields:**
+- **`appid` and `AppName`**: Automatically skipped during updates
+- **Validation**: No validation that appid matches the JSON key
+- **Safety**: Changing appid in JSON won't affect the actual app being updated
+
+**Shortcut Fields (Exe, StartDir):**
+- **Source**: These come from shortcuts.vdf, not localconfig.vdf
+- **Current behavior**: Read-only, not written back during updates
+- **Reason**: They're managed by Steam's shortcut system, not per-app config
+
+**Steam-Managed Fields:**
+- **cloud, autocloud, BadgeData**: Automatically skipped with warnings
+- **Safety**: These are complex nested objects that could break Steam if modified
+- **Override**: Use `--include-managed` flag to include them in extraction (but still not in updates)
+
+**Nested Object Handling:**
+- **Current limitation**: Only flat fields are supported for updates
+- **cloud/autocloud**: Complex nested objects are skipped entirely
+- **Future enhancement**: Could add support for nested object updates with proper validation
+
+**Edge Cases and Limitations:**
+
+**1. App ID Validation:**
+- **Issue**: No validation that JSON appid matches the dictionary key
+- **Example**: JSON key "3241660" but appid field "1234567" - updates wrong app
+- **Workaround**: Always ensure appid field matches the JSON key
+- **Future fix**: Add validation to prevent mismatched app IDs
+
+**2. Field Type Consistency:**
+- **Issue**: No validation of field value types
+- **Example**: ResolutionOverride expects string but receives number
+- **Current behavior**: Updates anyway, may cause Steam issues
+- **Recommendation**: Always use correct data types in JSON
+
+**3. Custom Input File Support:**
+- **Current limitation**: Update always reads from `data/all_games_config.json`
+- **Use case**: Want to update from a different JSON file
+- **Workaround**: Copy your file to `data/all_games_config.json`
+- **Future enhancement**: Add `--input-file` parameter
+
+**4. Partial Updates:**
+- **Current behavior**: Only updates fields present in JSON
+- **Benefit**: Safe, preserves other fields
+- **Limitation**: Can't easily set fields to empty without explicit null/""
+- **Example**: Standard mode with empty defaults won't clear existing values
+
+**5. Backup Management:**
+- **Current behavior**: Creates timestamped backups automatically
+- **Issue**: No automatic cleanup of old backups
+- **Recommendation**: Periodically clean up old backup files
+- **Future enhancement**: Add backup retention policy
+
 ## Dual-Mode Extraction System
 
 The tool supports two extraction modes to handle Steam's sparse storage model:
