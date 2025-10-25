@@ -51,7 +51,6 @@ backend/instance/archive/
 
 # Legacy data files (now archived)
 data/
-scripts/
 
 # Temporary files
 *.tmp
