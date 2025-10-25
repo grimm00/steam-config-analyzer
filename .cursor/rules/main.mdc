@@ -1,0 +1,90 @@
+---
+description: Steam Config Analyzer AI Rules - Read admin documentation and follow project patterns
+globs:
+alwaysApply: true
+---
+Read admin/README.md, admin/planning/, and project documentation, and also:
+
+# Cursor AI Rules for Steam Config Analyzer
+
+## Project Context
+- This is a Steam configuration management tool with CLI and planned GUI
+- Uses Python backend with VDF parsing for Steam configuration files
+- Target platform: Steam Deck and Linux systems
+- Focus: User-friendly interface for non-technical users
+
+## Development Workflow
+1. **Backend First**: Test CLI functionality and core logic
+2. **Safety First**: Always test with Steam closed, create backups
+3. **Modular Development**: Use the new modular architecture
+4. **Documentation**: Update hub-and-spoke documentation as you go
+
+## CRITICAL: Steam Safety Rules
+- **MANDATORY**: Steam must be closed before any configuration updates
+- **MANDATORY**: Test all changes with real Steam configuration files
+- **MANDATORY**: Verify automatic backups are created before changes
+- **MANDATORY**: Test rollback functionality with backup files
+- **NEVER**: Modify Steam-managed fields (cloud, autocloud, BadgeData, EULA)
+- **ALWAYS**: Validate field safety before updates
+- **ALWAYS**: Test with actual Steam games, not mock data
+
+## Code Quality Standards
+- Follow the modular architecture (cli.py, core/, api/, utils/)
+- Use type hints and docstrings for all public methods
+- Test all CLI commands before committing
+- Maintain backward compatibility with existing JSON files
+- Use the hub-and-spoke documentation pattern
+
+## Testing Requirements
+- **MANDATORY**: Test CLI commands with real Steam data
+- **MANDATORY**: Test both sparse and standard extraction modes
+- **MANDATORY**: Test update operations with Steam closed
+- **MANDATORY**: Verify backup creation and restore functionality
+- **MANDATORY**: Test field validation and safety checks
+- Test with different Steam user IDs if applicable
+
+## File Structure Rules
+- Backend code goes in `backend/src/`
+- User data goes in `backend/instance/` (gitignored)
+- Documentation follows hub-and-spoke pattern
+- Admin planning in `admin/planning/`
+- Tests in `tests/` with proper structure
+
+## Documentation Standards
+- Use hub-and-spoke pattern for all documentation
+- Update README.md files as entry points
+- Keep documents focused (one purpose per document)
+- Link between related documents
+- Update status and checkboxes as work progresses
+
+## Git Flow Rules
+- Use feature branches: `feat/feature-name`
+- Use fix branches: `fix/issue-description`
+- Use docs branches: `docs/documentation-update`
+- Use chore branches: `chore/maintenance-task`
+- All code changes require PRs
+- Documentation can be pushed directly to develop/main
+
+## Steam Deck Considerations
+- Test on Steam Deck Desktop Mode
+- Ensure touch-friendly interface for future GUI
+- Consider controller navigation for GUI
+- Optimize for Steam Deck performance
+- Test with actual Steam Deck games
+
+## Current Focus Areas
+- Complete project restructuring (in progress)
+- Modular architecture implementation
+- Comprehensive testing infrastructure
+- GUI framework selection and development
+- User experience optimization for Steam Deck
+
+## Safety Checklist Before Commits
+- [ ] Steam is closed during testing
+- [ ] Automatic backups are working
+- [ ] Field validation is working
+- [ ] CLI commands work with real data
+- [ ] Documentation is updated
+- [ ] Tests pass (when available)
+- [ ] No Steam-managed fields are modified
+- [ ] Rollback functionality works

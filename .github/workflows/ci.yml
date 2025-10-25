@@ -1,0 +1,296 @@
+---
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feat/*"
+      - "fix/*"
+      - "chore/*"
+      - "docs/*"
+      - "ci/*"
+      - "release/*"
+    paths-ignore:
+      - "admin/**"
+      - "docs/**"
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - "admin/**"
+      - "docs/**"
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  detect-branch-type:
+    runs-on: ubuntu-latest
+    name: Detect Branch Type
+    outputs:
+      branch-type: ${{ steps.detect.outputs.type }}
+      needs-lint: ${{ steps.detect.outputs.needs-lint }}
+      needs-test: ${{ steps.detect.outputs.needs-test }}
+      needs-install: ${{ steps.detect.outputs.needs-install }}
+      needs-external-reviews: ${{ steps.detect.outputs.needs-external-reviews }}
+
+    steps:
+      - name: Detect branch type and requirements
+        id: detect
+        run: |
+          # Differentiate between push and pull_request events
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BRANCH_NAME="${{ github.head_ref }}"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
+
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: $BRANCH_NAME"
+
+          # Default values
+          echo "type=unknown" >> $GITHUB_OUTPUT
+          echo "needs-lint=false" >> $GITHUB_OUTPUT
+          echo "needs-test=false" >> $GITHUB_OUTPUT
+          echo "needs-install=false" >> $GITHUB_OUTPUT
+          echo "needs-external-reviews=false" >> $GITHUB_OUTPUT
+
+          # Feature branches
+          if [[ "$BRANCH_NAME" =~ ^feat/ ]]; then
+            echo "type=feature" >> $GITHUB_OUTPUT
+            echo "needs-lint=true" >> $GITHUB_OUTPUT
+            echo "needs-test=true" >> $GITHUB_OUTPUT
+            echo "needs-install=true" >> $GITHUB_OUTPUT
+            echo "needs-external-reviews=false" >> $GITHUB_OUTPUT
+
+          # Documentation branches
+          elif [[ "$BRANCH_NAME" =~ ^docs/ ]]; then
+            echo "type=documentation" >> $GITHUB_OUTPUT
+            echo "needs-lint=false" >> $GITHUB_OUTPUT
+            echo "needs-test=false" >> $GITHUB_OUTPUT
+            echo "needs-install=false" >> $GITHUB_OUTPUT
+            echo "needs-external-reviews=false" >> $GITHUB_OUTPUT
+
+          # CI/CD branches
+          elif [[ "$BRANCH_NAME" =~ ^ci/ ]]; then
+            echo "type=ci" >> $GITHUB_OUTPUT
+            echo "needs-lint=true" >> $GITHUB_OUTPUT
+            echo "needs-test=true" >> $GITHUB_OUTPUT
+            echo "needs-install=true" >> $GITHUB_OUTPUT
+            echo "needs-external-reviews=false" >> $GITHUB_OUTPUT
+
+          # Bug fix branches
+          elif [[ "$BRANCH_NAME" =~ ^fix/ ]]; then
+            echo "type=fix" >> $GITHUB_OUTPUT
+            echo "needs-lint=true" >> $GITHUB_OUTPUT
+            echo "needs-test=true" >> $GITHUB_OUTPUT
+            echo "needs-install=true" >> $GITHUB_OUTPUT
+            echo "needs-external-reviews=false" >> $GITHUB_OUTPUT
+
+          # Maintenance branches
+          elif [[ "$BRANCH_NAME" =~ ^chore/ ]]; then
+            echo "type=chore" >> $GITHUB_OUTPUT
+            echo "needs-lint=true" >> $GITHUB_OUTPUT
+            echo "needs-test=false" >> $GITHUB_OUTPUT
+            echo "needs-install=false" >> $GITHUB_OUTPUT
+            echo "needs-external-reviews=false" >> $GITHUB_OUTPUT
+
+          # Release branches
+          elif [[ "$BRANCH_NAME" =~ ^release/ ]]; then
+            echo "type=release" >> $GITHUB_OUTPUT
+            echo "needs-lint=true" >> $GITHUB_OUTPUT
+            echo "needs-test=true" >> $GITHUB_OUTPUT
+            echo "needs-install=true" >> $GITHUB_OUTPUT
+            echo "needs-external-reviews=true" >> $GITHUB_OUTPUT
+
+          # Main/develop branches
+          elif [[ "$BRANCH_NAME" =~ ^(main|develop)$ ]]; then
+            echo "type=main" >> $GITHUB_OUTPUT
+            echo "needs-lint=true" >> $GITHUB_OUTPUT
+            echo "needs-test=true" >> $GITHUB_OUTPUT
+            echo "needs-install=true" >> $GITHUB_OUTPUT
+            echo "needs-external-reviews=true" >> $GITHUB_OUTPUT
+
+          # Default for unknown branches
+          else
+            echo "type=unknown" >> $GITHUB_OUTPUT
+            echo "needs-lint=true" >> $GITHUB_OUTPUT
+            echo "needs-test=true" >> $GITHUB_OUTPUT
+            echo "needs-install=true" >> $GITHUB_OUTPUT
+            echo "needs-external-reviews=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log detection results
+        run: |
+          echo "Detected branch type: ${{ steps.detect.outputs.type }}"
+          echo "Needs lint: ${{ steps.detect.outputs.needs-lint }}"
+          echo "Needs test: ${{ steps.detect.outputs.needs-test }}"
+          echo "Needs install: ${{ steps.detect.outputs.needs-install }}"
+          echo "Needs external reviews: ${{ steps.detect.outputs.needs-external-reviews }}"
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: [detect-branch-type]
+    if: needs.detect-branch-type.outputs.needs-lint == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: "backend/requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run linting
+        run: |
+          cd backend
+          # Run flake8
+          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          
+          # Run black check
+          black --check src/
+          
+          # Run mypy
+          mypy src/ --ignore-missing-imports
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [detect-branch-type]
+    if: needs.detect-branch-type.outputs.needs-test == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: "backend/requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Create test environment
+        run: |
+          # Create test directories
+          mkdir -p backend/instance/data
+          mkdir -p backend/instance/backups
+          mkdir -p backend/instance/archive
+          
+          # Create test VDF files (mock data)
+          mkdir -p ~/.local/share/Steam/userdata/107256425/config
+          echo '{"UserLocalConfigStore":{"Software":{"Valve":{"Steam":{"apps":{"7":{"LastPlayed":"1716275847","Playtime":"1260"}}}}}}}' > ~/.local/share/Steam/userdata/107256425/config/localconfig.vdf
+
+      - name: Run tests
+        run: |
+          cd backend
+          # Run pytest with coverage
+          pytest tests/ --cov=src --cov-report=xml --cov-report=html -v
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [detect-branch-type, lint, test]
+    if: needs.detect-branch-type.outputs.needs-install == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: "backend/requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Build package
+        run: |
+          cd backend
+          python setup.py sdist bdist_wheel
+
+      - name: Test package installation
+        run: |
+          cd backend
+          pip install dist/*.whl
+          steam-config-analyzer --help
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: backend/dist/
+          if-no-files-found: ignore
+
+  security:
+    runs-on: ubuntu-latest
+    needs: [detect-branch-type]
+    if: needs.detect-branch-type.outputs.needs-test == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: "backend/requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run security scan
+        run: |
+          cd backend
+          # Run safety check
+          pip install safety
+          safety check
+          
+          # Run bandit security linter
+          pip install bandit
+          bandit -r src/ -f json -o bandit-report.json || true
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: backend/bandit-report.json
+          if-no-files-found: ignore
