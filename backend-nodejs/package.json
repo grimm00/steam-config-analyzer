@@ -1,0 +1,56 @@
+{
+  "name": "steam-config-analyzer-backend",
+  "version": "2.0.0",
+  "description": "Steam configuration management tool with CLI and planned GUI",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "steam-config-analyzer": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli/index.ts",
+    "start": "node dist/cli/index.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "steam",
+    "configuration",
+    "vdf",
+    "steam-deck",
+    "gaming",
+    "cli"
+  ],
+  "author": "grimm00",
+  "license": "MIT",
+  "dependencies": {
+    "simple-vdf": "^1.3.0",
+    "commander": "^11.0.0",
+    "chalk": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grimm00/steam-config-analyzer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/grimm00/steam-config-analyzer/issues"
+  },
+  "homepage": "https://github.com/grimm00/steam-config-analyzer#readme"
+}
