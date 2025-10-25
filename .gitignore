@@ -45,12 +45,13 @@ ehthumbs.db
 Thumbs.db
 
 # Steam Data (sensitive user data)
-data/backups/
-data/shortcuts_config.json
-data/all_games_config.json
-data/app_name_cache.json
-data/shortcuts_test_output.json
-data/test_shortcuts.json
+backend/instance/data/
+backend/instance/backups/
+backend/instance/archive/
+
+# Legacy data files (now archived)
+data/
+scripts/
 
 # Temporary files
 *.tmp

@@ -1,0 +1,17 @@
+# Steam Config Analyzer Backend Dependencies
+
+# VDF parsing library for Steam configuration files
+vdf>=3.4
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+
+# Code quality
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+
+# Type stubs
+types-requests>=2.28.0

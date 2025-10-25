@@ -1,0 +1,87 @@
+# Steam Config Analyzer Project Initialization
+
+## Problem Statement
+Create a user-friendly tool for managing Steam game configurations with both CLI and GUI interfaces, making Steam Deck configuration accessible to non-technical users without requiring terminal knowledge.
+
+## Project Type
+- [x] Regular Project
+
+## Scope
+Transform the existing Steam Config Analyzer from a CLI-only tool into a comprehensive application with:
+- Enhanced CLI interface with modular architecture
+- GUI interface for non-technical users
+- Comprehensive testing infrastructure
+- Professional project structure following dev-infra template
+- Steam Deck optimized user experience
+
+## Project Structure Preferences
+- [x] Use hub-and-spoke documentation pattern
+- [x] Include admin/ directory for project management
+- [x] Feature-based planning under admin/planning/features/
+- [x] Include fix/ directories under features for troubleshooting
+- [x] Add research/ directory for decision-making
+
+## Version Control
+- [x] Use Git Flow (main/develop/feature branches)
+- [x] Use GitHub CLI for repo management
+- [x] Granular CI workflows based on branch types
+- [x] PR-based code changes (minimal diffs for rate limiting)
+
+## Tool Integrations
+- [ ] Sourcery AI for code review
+- [ ] Bugbot for bug detection
+- [ ] Dev-toolkit integration (cd ~/Projects/dev-toolkit)
+- [x] Cursor IDE with AI rules (.cursor/rules/main.mdc)
+
+## CI/CD Preferences
+- [x] Doc-heavy/chore branches can push directly to develop/main
+- [x] Code changes require PRs
+- [x] Automated testing on feature branches
+- [x] External reviews on release branches
+
+## Technology Stack
+### Backend
+- Python 3.13+
+- VDF parsing library
+- JSON configuration management
+- File system operations
+
+### Frontend (Planned)
+- GUI framework (TBD - PyQt6, Tkinter, or web-based)
+- Steam Deck compatibility focus
+- User-friendly interface design
+
+### DevOps
+- GitHub Actions CI/CD
+- Automated testing
+- Code quality checks
+
+## Key Features
+- Dual-mode extraction (sparse/standard)
+- Safety features and backup system
+- Dynamic game name resolution
+- User-friendly interface for Steam Deck users
+- Comprehensive documentation
+
+## Target Users
+- Steam Deck users (primary)
+- Non-technical users (no terminal experience)
+- Casual gamers (simple, intuitive interface)
+- Power users (advanced features accessible)
+
+## Success Criteria
+- All existing CLI functionality works in new structure
+- Comprehensive test coverage (>80%)
+- Clear, navigable documentation
+- Ready for GUI development to begin
+- Professional project structure
+- Easy onboarding for new contributors
+
+## Additional Notes
+Created by: grimm00
+Created on: 2025-01-24
+Template: Regular Project
+Repository: https://github.com/grimm00/steam-config-analyzer
+
+---
+*This template can be customized for each new project. Remove unused sections and add project-specific details.*
